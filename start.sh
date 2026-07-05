@@ -9,7 +9,12 @@ python -m bot.main &
 BOT_PID=$!
 
 echo "🌐 Démarrage du dashboard sur le port ${PORT}..."
-gunicorn -w 2 -b 0.0.0.0:${PORT} web.app:app &
+python -m gunicorn \
+  --workers 1 \
+  --threads 4 \
+  --timeout 120 \
+  --bind 0.0.0.0:${PORT} \
+  web.app:app &
 WEB_PID=$!
 
 trap "echo 'Arrêt...'; kill $BOT_PID $WEB_PID; exit" SIGINT SIGTERM
