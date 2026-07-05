@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>{{ title or "Pokémon TCG Bot Dashboard" }}</title>
+
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+  </head>
+
+  <body>
+    <aside class="sidebar">
+      <div class="logo">🎴 TCG Bot</div>
+
+      <nav>
+        <a href="/">Dashboard</a>
+        <a href="/users">Joueurs</a>
+        <a href="/leaderboard">Classements</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      {% with messages = get_flashed_messages(with_categories=true) %} {% if
+      messages %}
+      <div class="flash-container">
+        {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+      {% endif %} {% endwith %} {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>

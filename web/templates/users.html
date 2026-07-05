@@ -1,0 +1,51 @@
+{% extends "base.html" %} {% block content %}
+
+<h1>Joueurs</h1>
+
+<form class="search-form" method="get" action="/users">
+  <input
+    type="text"
+    name="q"
+    placeholder="Rechercher un joueur..."
+    value="{{ query or '' }}"
+  />
+
+  <button type="submit">🔎 Rechercher</button>
+</form>
+<section class="panel">
+  <table>
+    <thead>
+      <tr>
+        <th>Joueur</th>
+        <th>Niveau</th>
+        <th>XP</th>
+        <th>Coins</th>
+        <th>Gems</th>
+        <th>Cartes</th>
+        <th>Uniques</th>
+        <th>Valeur</th>
+        <th>Boosters</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for user in users %}
+      <tr>
+        <td>
+          <a href="/users/{{ user.id }}">{{ user.name }}</a>
+        </td>
+        <td>{{ user.level }}</td>
+        <td>{{ user.xp }}</td>
+        <td>{{ user.coins }}</td>
+        <td>{{ user.gems }}</td>
+        <td>{{ user.total_cards }}</td>
+        <td>{{ user.unique_cards }}</td>
+        <td>{{ user.collection_value }}</td>
+        <td>{{ user.boosters_opened }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% endblock %}

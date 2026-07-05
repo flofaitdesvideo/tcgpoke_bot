@@ -1,0 +1,75 @@
+{% extends "base.html" %} {% block content %}
+
+<h1>Dashboard Pokémon TCG</h1>
+
+<div class="stats-grid">
+  <div class="card">
+    <span>👥 Joueurs</span>
+    <strong>{{ stats.players }}</strong>
+  </div>
+
+  <div class="card">
+    <span>🃏 Cartes totales</span>
+    <strong>{{ stats.cards }}</strong>
+  </div>
+
+  <div class="card">
+    <span>🎴 Cartes uniques</span>
+    <strong>{{ stats.unique_cards }}</strong>
+  </div>
+
+  <div class="card">
+    <span>🪙 PokéCoins</span>
+    <strong>{{ stats.coins }}</strong>
+  </div>
+
+  <div class="card">
+    <span>💎 Gems</span>
+    <strong>{{ stats.gems }}</strong>
+  </div>
+
+  <div class="card">
+    <span>🎁 Boosters ouverts</span>
+    <strong>{{ stats.boosters }}</strong>
+  </div>
+
+  <div class="card">
+    <span>🤝 Échanges</span>
+    <strong>{{ stats.trades }}</strong>
+  </div>
+
+  <div class="card">
+    <span>💰 Valeur totale</span>
+    <strong>{{ stats.value }}</strong>
+  </div>
+</div>
+
+<section class="panel">
+  <h2>🏆 Top collection</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Joueur</th>
+        <th>Cartes</th>
+        <th>Uniques</th>
+        <th>Valeur</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for user in top_users %}
+      <tr>
+        <td>
+          <a href="/users/{{ user.id }}">{{ user.name }}</a>
+        </td>
+        <td>{{ user.total_cards }}</td>
+        <td>{{ user.unique_cards }}</td>
+        <td>{{ user.collection_value }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% endblock %}

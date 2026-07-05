@@ -1,0 +1,55 @@
+{% extends "base.html" %} {% block content %}
+
+<h1>Classements</h1>
+
+<div class="leaderboards">
+  <section class="panel">
+    <h2>💎 Valeur collection</h2>
+    <ol>
+      {% for user in rankings.value %}
+      <li>
+        <a href="/users/{{ user.id }}">{{ user.name }}</a>
+        — {{ user.collection_value }}
+      </li>
+      {% endfor %}
+    </ol>
+  </section>
+
+  <section class="panel">
+    <h2>🪙 PokéCoins</h2>
+    <ol>
+      {% for user in rankings.coins %}
+      <li>
+        <a href="/users/{{ user.id }}">{{ user.name }}</a>
+        — {{ user.coins }}
+      </li>
+      {% endfor %}
+    </ol>
+  </section>
+
+  <section class="panel">
+    <h2>⭐ Niveau</h2>
+    <ol>
+      {% for user in rankings.level %}
+      <li>
+        <a href="/users/{{ user.id }}">{{ user.name }}</a>
+        — niveau {{ user.level }}
+      </li>
+      {% endfor %}
+    </ol>
+  </section>
+
+  <section class="panel">
+    <h2>🃏 Cartes</h2>
+    <ol>
+      {% for user in rankings.cards %}
+      <li>
+        <a href="/users/{{ user.id }}">{{ user.name }}</a>
+        — {{ user.total_cards }} cartes
+      </li>
+      {% endfor %}
+    </ol>
+  </section>
+</div>
+
+{% endblock %}

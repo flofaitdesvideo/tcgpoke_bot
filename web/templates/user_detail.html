@@ -1,0 +1,191 @@
+{% extends "base.html" %} {% block content %}
+
+<h1>Joueur {{ user.name }}</h1>
+{% if user.avatar_url %}
+<img class="avatar" src="{{ user.avatar_url }}" alt="{{ user.name }}" />
+{% endif %}
+
+<div class="stats-grid">
+  <div class="card">
+    <span>⭐ Niveau</span>
+    <strong>{{ user.level }}</strong>
+  </div>
+
+  <div class="card">
+    <span>⚡ XP</span>
+    <strong>{{ user.xp }}</strong>
+  </div>
+
+  <div class="card">
+    <span>🪙 Coins</span>
+    <strong>{{ user.coins }}</strong>
+  </div>
+
+  <div class="card">
+    <span>💎 Gems</span>
+    <strong>{{ user.gems }}</strong>
+  </div>
+
+  <div class="card">
+    <span>🃏 Cartes</span>
+    <strong>{{ user.total_cards }}</strong>
+  </div>
+
+  <div class="card">
+    <span>🎴 Uniques</span>
+    <strong>{{ user.unique_cards }}</strong>
+  </div>
+
+  <div class="card">
+    <span>💰 Valeur</span>
+    <strong>{{ user.collection_value }}</strong>
+  </div>
+
+  <div class="card">
+    <span>🏆 Succès</span>
+    <strong>{{ user.achievements }}</strong>
+  </div>
+</div>
+
+{% if best_card %}
+<section class="panel best-card">
+  <h2>🌟 Meilleure carte</h2>
+
+  <div class="best-card-layout">
+    {% if best_card.image %}
+    <img src="{{ best_card.image }}/high.webp" alt="{{ best_card.name }}" />
+    {% endif %}
+
+    <div>
+      <h3>{{ best_card.rarity_emoji }} {{ best_card.name }}</h3>
+      <p>Rareté : <strong>{{ best_card.rarity }}</strong></p>
+      <p>Valeur : <strong>{{ best_card.value }}</strong></p>
+      <p>Copies : <strong>{{ best_card.count }}</strong></p>
+      <p>Extension : <strong>{{ best_card.set.name }}</strong></p>
+    </div>
+  </div>
+</section>
+{% endif %}
+<section class="panel admin-panel">
+  <h2>🛠️ Actions admin</h2>
+
+  <div class="admin-grid">
+    <form method="post" action="/users/{{ user.id }}/give-coins">
+      <h3>Ajouter des PokéCoins</h3>
+      <input type="number" name="amount" min="1" placeholder="Montant" />
+      <button type="submit">Ajouter</button>
+    </form>
+
+    <form method="post" action="/users/{{ user.id }}/take-coins">
+      <h3>Retirer des PokéCoins</h3>
+      <input type="number" name="amount" min="1" placeholder="Montant" />
+      <button type="submit" class="danger">Retirer</button>
+    </form>
+
+    <form method="post" action="/users/{{ user.id }}/give-gems">
+      <h3>Ajouter des gems</h3>
+      <input type="number" name="amount" min="1" placeholder="Montant" />
+      <button type="submit">Ajouter</button>
+    </form>
+    <form method="post" action="/users/{{ user.id }}/give-card">
+      <h3>Donner une carte</h3>
+
+      <input
+        type="text"
+        name="nom"
+        placeholder="Nom de la carte ex: Pikachu"
+        required
+      />
+
+      <input
+        type="text"
+        name="extension"
+        placeholder="Extension ou ID ex: swsh, sv, Écarlate..."
+      />
+
+      <select name="rarete">
+        <option value="">Toutes les raretés</option>
+        <option value="common">Commune</option>
+        <option value="uncommon">Peu commune</option>
+        <option value="rare">Rare</option>
+        <option value="holo">Holo</option>
+        <option value="ultra">Ultra rare</option>
+        <option value="secret">Secrète</option>
+      </select>
+
+      <input
+        type="number"
+        name="quantite"
+        min="1"
+        value="1"
+        placeholder="Quantité"
+      />
+
+      <button type="submit">Donner la carte</button>
+    </form>
+    <form method="post" action="/users/{{ user.id }}/set-level">
+      <h3>Modifier niveau / XP</h3>
+      <form method="post" action="/users/{{ user.id }}/refresh-rarities">
+        <h3>Raretés</h3>
+        <button type="submit" class="warning">Recalculer les raretés</button>
+      </form>
+      <input
+        type="number"
+        name="level"
+        min="1"
+        value="{{ user.level }}"
+        placeholder="Niveau"
+      />
+
+      <input
+        type="number"
+        name="xp"
+        min="0"
+        value="{{ user.xp }}"
+        placeholder="XP"
+      />
+
+      <button type="submit">Modifier</button>
+    </form>
+
+    <form method="post" action="/users/{{ user.id }}/reset-daily">
+      <h3>Daily</h3>
+      <button type="submit" class="warning">Reset daily</button>
+    </form>
+
+    <form method="post" action="/users/{{ user.id }}/reset-missions">
+      <h3>Missions</h3>
+      <button type="submit" class="warning">Reset missions</button>
+    </form>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Collection</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Carte</th>
+        <th>Rareté</th>
+        <th>Copies</th>
+        <th>Valeur</th>
+        <th>Extension</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for card in inventory %}
+      <tr>
+        <td>{{ card.rarity_emoji }} {{ card.name }}</td>
+        <td>{{ card.rarity }}</td>
+        <td>{{ card.count }}</td>
+        <td>{{ card.value }}</td>
+        <td>{{ card.set.name }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% endblock %}
