@@ -5,15 +5,14 @@ from typing import Optional
 from discord import app_commands
 from discord.ext import commands
 
+from bot import config
+
 from service.database import (
     get_user,
     update_user,
     add_coins,
     remove_coins,
 )
-
-
-
 
 from service.tcg_api import (
     search_card,
@@ -30,13 +29,76 @@ from service.inventory import (
     refresh_inventory_rarities,
     refresh_all_users_rarities,
 )
+
+
 # ============================================================
 # OUTILS ADMIN
 # ============================================================
 
 def is_admin(interaction: discord.Interaction) -> bool:
-    permissions = interaction.user.guild_permissions
-    return permissions.administrator
+    user_id = str(interaction.user.id)
+
+    if user_id in getattr(config, "ADMIN_DISCORD_IDS", []):
+        return True
+
+    if isinstance(interaction.user, discord.Member):
+        if interaction.user.guild_permissions.administrator:
+            return True
+
+        user_role_ids = [
+            str(role.id)
+            for role in interaction.user.roles
+        ]
+
+        for role_id in getattr(config, "ADMIN_ROLE_IDS", []):
+            if role_id in user_role_ids:
+                return True
+
+    return False
+
+
+async def admin_check(interaction: discord.Interaction) -> bool:
+    if not is_admin(interaction):
+        await interaction.response.send_message(
+            "❌ Tu dois être administrateur pour utiliser cette commande.",
+            ephemeral=True
+        )
+        return False
+
+    return True
+
+
+def filter_cards_for_admin(
+    cards,
+    extension: Optional[str] = None,
+    rarete: Optional[str] = None
+):
+    filtered = []
+
+    extension_query = extension.lower().strip() if extension else None
+    rarity_query = rarete.lower().strip() if rarete else None
+
+    for card in cards:
+
+        if extension_query:
+            set_data = card.get("set", {})
+            set_id = str(set_data.get("id", "")).lower()
+            set_name = str(set_data.get("name", "")).lower()
+
+            if extension_query not in set_id and extension_query not in set_name:
+                continue
+
+        if rarity_query:
+            card_rarity = normalize_rarity_name(
+                card.get("rarity")
+            )
+
+            if card_rarity != rarity_query:
+                continue
+
+        filtered.append(card)
+
+    return filtered
 
 
 def build_user_info_embed(
@@ -107,51 +169,6 @@ def build_user_info_embed(
     return embed
 
 
-async def admin_check(interaction: discord.Interaction) -> bool:
-    if not is_admin(interaction):
-        await interaction.response.send_message(
-            "❌ Tu dois être administrateur pour utiliser cette commande.",
-            ephemeral=True
-        )
-        return False
-
-    return True
-
-def filter_cards_for_admin(
-    cards,
-    extension: Optional[str] = None,
-    rarete: Optional[str] = None
-):
-    filtered = []
-
-    extension_query = extension.lower().strip() if extension else None
-    rarity_query = rarete.lower().strip() if rarete else None
-
-    for card in cards:
-
-        # Filtre extension
-        if extension_query:
-            set_data = card.get("set", {})
-            set_id = str(set_data.get("id", "")).lower()
-            set_name = str(set_data.get("name", "")).lower()
-
-            if extension_query not in set_id and extension_query not in set_name:
-                continue
-
-        # Filtre rareté
-        if rarity_query:
-            card_rarity = normalize_rarity_name(
-                card.get("rarity")
-            )
-
-            if card_rarity != rarity_query:
-                continue
-
-        filtered.append(card)
-
-    return filtered
-
-
 # ============================================================
 # COG ADMIN
 # ============================================================
@@ -160,10 +177,6 @@ class Admin(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-
-    # --------------------------------------------------------
-    # GIVE COINS
-    # --------------------------------------------------------
 
     @app_commands.command(
         name="admin_give_coins",
@@ -200,10 +213,6 @@ class Admin(commands.Cog):
             f"✅ **{montant} PokéCoins** donnés à {joueur.mention}.",
             ephemeral=True
         )
-
-    # --------------------------------------------------------
-    # TAKE COINS
-    # --------------------------------------------------------
 
     @app_commands.command(
         name="admin_take_coins",
@@ -247,10 +256,6 @@ class Admin(commands.Cog):
             ephemeral=True
         )
 
-    # --------------------------------------------------------
-    # SET LEVEL
-    # --------------------------------------------------------
-
     @app_commands.command(
         name="admin_set_level",
         description="Admin — Définit le niveau d'un joueur"
@@ -279,10 +284,7 @@ class Admin(commands.Cog):
                 ephemeral=True
             )
 
-        if xp is None:
-            xp = 0
-
-        if xp < 0:
+        if xp is None or xp < 0:
             xp = 0
 
         update_user(
@@ -297,10 +299,6 @@ class Admin(commands.Cog):
             f"✅ Niveau de {joueur.mention} défini sur **{niveau}** avec **{xp} XP**.",
             ephemeral=True
         )
-
-    # --------------------------------------------------------
-    # GIVE GEMS
-    # --------------------------------------------------------
 
     @app_commands.command(
         name="admin_give_gems",
@@ -343,22 +341,18 @@ class Admin(commands.Cog):
             ephemeral=True
         )
 
-    # --------------------------------------------------------
-    # GIVE CARD
-    # --------------------------------------------------------
-
-        @app_commands.command(
+    @app_commands.command(
         name="admin_give_card",
         description="Admin — Donne une carte Pokémon à un joueur"
     )
-        @app_commands.describe(
+    @app_commands.describe(
         joueur="Joueur ciblé",
         nom="Nom de la carte à chercher",
         extension="Nom ou ID de l'extension",
         rarete="Rareté de la carte",
         quantite="Nombre de copies à donner"
     )
-        @app_commands.choices(
+    @app_commands.choices(
         rarete=[
             app_commands.Choice(name="Commune", value="common"),
             app_commands.Choice(name="Peu commune", value="uncommon"),
@@ -368,7 +362,7 @@ class Admin(commands.Cog):
             app_commands.Choice(name="Secrète", value="secret"),
         ]
     )
-        async def admin_give_card(
+    async def admin_give_card(
         self,
         interaction: discord.Interaction,
         joueur: discord.Member,
@@ -378,8 +372,8 @@ class Admin(commands.Cog):
         quantite: Optional[int] = 1
     ):
 
-            if not await admin_check(interaction):
-                return
+        if not await admin_check(interaction):
+            return
 
         await interaction.response.defer(ephemeral=True)
 
@@ -410,18 +404,8 @@ class Admin(commands.Cog):
         )
 
         if not filtered_results:
-            details = []
-
-            if extension:
-                details.append(f"extension `{extension}`")
-
-            if rarete:
-                details.append(f"rareté `{rarete}`")
-
-            details_text = " avec " + " et ".join(details) if details else ""
-
             return await interaction.followup.send(
-                f"❌ Aucune carte trouvée pour `{nom}`{details_text}.",
+                f"❌ Aucune carte trouvée pour `{nom}` avec ces filtres.",
                 ephemeral=True
             )
 
@@ -434,31 +418,11 @@ class Admin(commands.Cog):
                 amount=1
             )
 
-        card_name = selected_card.get(
-            "name",
-            "Carte inconnue"
-        )
-
-        rarity = selected_card.get(
-            "rarity",
-            "Rareté inconnue"
-        )
-
-        set_name = selected_card.get(
-            "set",
-            {}
-        ).get(
-            "name",
-            "Extension inconnue"
-        )
-
-        set_id = selected_card.get(
-            "set",
-            {}
-        ).get(
-            "id",
-            "unknown"
-        )
+        card_name = selected_card.get("name", "Carte inconnue")
+        rarity = selected_card.get("rarity", "Rareté inconnue")
+        set_data = selected_card.get("set", {})
+        set_name = set_data.get("name", "Extension inconnue")
+        set_id = set_data.get("id", "unknown")
 
         await interaction.followup.send(
             (
@@ -469,10 +433,6 @@ class Admin(commands.Cog):
             ),
             ephemeral=True
         )
-
-    # --------------------------------------------------------
-    # RESET DAILY
-    # --------------------------------------------------------
 
     @app_commands.command(
         name="admin_reset_daily",
@@ -504,10 +464,6 @@ class Admin(commands.Cog):
             ephemeral=True
         )
 
-    # --------------------------------------------------------
-    # RESET MISSIONS
-    # --------------------------------------------------------
-
     @app_commands.command(
         name="admin_reset_missions",
         description="Admin — Réinitialise les missions quotidiennes d'un joueur"
@@ -535,10 +491,6 @@ class Admin(commands.Cog):
             ephemeral=True
         )
 
-    # --------------------------------------------------------
-    # RELOAD TCG CACHE
-    # --------------------------------------------------------
-
     @app_commands.command(
         name="admin_reload_tcg",
         description="Admin — Recharge le cache TCGdex"
@@ -565,10 +517,6 @@ class Admin(commands.Cog):
             ),
             ephemeral=True
         )
-
-    # --------------------------------------------------------
-    # USER INFO
-    # --------------------------------------------------------
 
     @app_commands.command(
         name="admin_user_info",
@@ -606,21 +554,22 @@ class Admin(commands.Cog):
             embed=embed,
             ephemeral=True
         )
-        @app_commands.command(
+
+    @app_commands.command(
         name="admin_refresh_rarities",
         description="Admin — Recalcule les raretés d'un joueur"
     )
-        @app_commands.describe(
+    @app_commands.describe(
         joueur="Joueur ciblé"
     )
-        async def admin_refresh_rarities(
+    async def admin_refresh_rarities(
         self,
         interaction: discord.Interaction,
         joueur: discord.Member
     ):
 
-            if not await admin_check(interaction):
-                return
+        if not await admin_check(interaction):
+            return
 
         await interaction.response.defer(ephemeral=True)
 
@@ -632,17 +581,18 @@ class Admin(commands.Cog):
             f"✅ Raretés recalculées pour {joueur.mention} : **{count} carte(s)** corrigée(s).",
             ephemeral=True
         )
-        @app_commands.command(
+
+    @app_commands.command(
         name="admin_refresh_all_rarities",
         description="Admin — Recalcule les raretés de tous les joueurs"
     )
-        async def admin_refresh_all_rarities(
+    async def admin_refresh_all_rarities(
         self,
         interaction: discord.Interaction
     ):
 
-            if not await admin_check(interaction):
-                return
+        if not await admin_check(interaction):
+            return
 
         await interaction.response.defer(ephemeral=True)
 
